@@ -1,0 +1,29 @@
+included:
+  - App
+  - Features
+
+excluded:
+  - .tuist-bin
+  - .build
+  - .swiftpm
+  - Tuist
+  - Tuist/.build
+  - App/Derived
+
+opt_in_rules:
+  - empty_count
+  - empty_string
+  - force_unwrapping
+  - prefer_self_type_over_type_of_self
+  - closure_end_indentation
+
+disabled_rules:
+  - todo
+  - nesting
+
+line_length:
+  warning: 120
+  error: 150
+
+identifier_name:
+  min_length: 2

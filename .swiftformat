@@ -1,0 +1,10 @@
+--indent 2
+--swiftversion 6.0
+--maxwidth 120
+--wraparguments before-first
+--wrapcollections before-first
+--commas always
+--semicolons never
+--trimwhitespace always
+--header strip
+--exclude .tuist-bin,.build,Tuist

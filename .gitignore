@@ -1,0 +1,22 @@
+# Tuist generated
+*.xcodeproj
+*.xcworkspace
+Derived/
+App/Derived/
+
+# Tuist binaries and build cache
+.tuist-bin/
+Tuist/.build/
+.build/
+
+# SPM
+.swiftpm/
+
+# Xcode
+xcuserdata/
+*.xccheckout
+*.moved-aside
+DerivedData/
+
+# macOS
+.DS_Store
