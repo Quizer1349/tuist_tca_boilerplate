@@ -8,7 +8,7 @@ struct HapticClientTests {
   func noopPlay() async {
     let events: [HapticEvent] = [
       .selection, .success, .warning, .error,
-      .lightTap, .mediumTap, .heavyTap,
+      .lightTap, .mediumTap, .heavyTap
     ]
     for event in events {
       await HapticClient.noop.play(event)

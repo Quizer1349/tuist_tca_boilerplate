@@ -1,5 +1,6 @@
 @testable import AppCoreFeature
 import ComposableArchitecture
+import ExampleFeature
 import HapticClient
 import Testing
 
@@ -30,17 +31,44 @@ struct AppCoreFeatureTests {
     await store.send(.appDelegate(.didFinishLaunching))
   }
 
-  @Test("startButtonTapped plays medium tap haptic")
+  @Test("startButtonTapped pushes example onto path and plays medium tap haptic")
   func startButtonTapped() async {
-    let capturedEvent = LockIsolated<HapticEvent?>(nil)
+    let captured = LockIsolated<HapticEvent?>(nil)
     let store = makeStore {
-      $0.hapticClient.play = { capturedEvent.setValue($0) }
+      $0.hapticClient.play = { captured.setValue($0) }
     }
 
-    await store.send(.view(.startButtonTapped))
+    await store.send(.view(.startButtonTapped)) {
+      $0.path.append(.example(ExampleFeature.State()))
+    }
+    await store.finish()
 
-    capturedEvent.withValue {
-      #expect($0 == .mediumTap)
+    captured.withValue { #expect($0 == .mediumTap) }
+  }
+
+  @Test("sheetButtonTapped presents example sheet and plays selection haptic")
+  func sheetButtonTapped() async {
+    let captured = LockIsolated<HapticEvent?>(nil)
+    let store = makeStore {
+      $0.hapticClient.play = { captured.setValue($0) }
+    }
+
+    await store.send(.view(.sheetButtonTapped)) {
+      $0.sheet = ExampleFeature.State(counter: 100)
+    }
+    await store.finish()
+
+    captured.withValue { #expect($0 == .selection) }
+  }
+
+  @Test("sheet dismiss clears the presented state")
+  func sheetDismiss() async {
+    var initialState = AppCoreFeature.State()
+    initialState.sheet = .init(counter: 42)
+    let store = makeStore(initialState: initialState)
+
+    await store.send(.sheet(.dismiss)) {
+      $0.sheet = nil
     }
   }
 }
