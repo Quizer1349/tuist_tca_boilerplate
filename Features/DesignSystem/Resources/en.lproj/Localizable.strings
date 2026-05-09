@@ -1,2 +1,22 @@
-/* AppFeature */
+/* All UI strings live here so a single Localizable.strings can be synced from
+   a translation management service (POEditor, Crowdin, Lokalise). Group keys
+   by feature with section comments so it stays scannable as the app grows. */
+
+// MARK: - AppCoreFeature
+
+/* AppCore — welcome message at the top of the entry screen */
 "app_feature_hello" = "Hello, <Any Text Here>!";
+
+/* AppCore — primary button that pushes ExampleView onto the NavigationStack */
+"push_example_button" = "Push Example";
+
+/* AppCore — secondary button that presents ExampleView as a modal sheet */
+"present_sheet_button" = "Present Sheet";
+
+// MARK: - ExampleFeature
+
+/* Example — navigation bar title */
+"example_title" = "Example";
+
+/* Example — button that zeroes the counter */
+"reset_button" = "Reset";

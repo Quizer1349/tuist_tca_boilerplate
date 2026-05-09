@@ -1,10 +1,11 @@
 import ComposableArchitecture
 import DesignSystem
+import ExampleFeature
 import SwiftUI
 
 @ViewAction(for: AppCoreFeature.self)
 public struct AppCoreView: View {
-  public let store: StoreOf<AppCoreFeature>
+  @Bindable public var store: StoreOf<AppCoreFeature>
 
   public init(store: StoreOf<AppCoreFeature>) {
     self.store = store
@@ -13,17 +14,29 @@ public struct AppCoreView: View {
   @Environment(\.designSpacing) var spacing
 
   public var body: some View {
-    VStack(spacing: spacing.md) {
-      Image(uiImage: DesignSystemAsset.Icons.sun.image)
-        .resizable()
-        .frame(width: 100, height: 100)
-      Text(DesignSystemStrings.appFeatureHello)
-      Button("Start") {
-        send(.startButtonTapped)
+    NavigationStack(path: $store.scope(state: \.path, action: \.path)) {
+      VStack(spacing: spacing.md) {
+        Image(uiImage: DesignSystemAsset.Icons.sun.image)
+          .resizable()
+          .frame(width: 100, height: 100)
+        Text(DesignSystemStrings.appFeatureHello)
+        Button(DesignSystemStrings.pushExampleButton) { send(.startButtonTapped) }
+          .buttonStyle(.primary)
+        Button(DesignSystemStrings.presentSheetButton) { send(.sheetButtonTapped) }
+          .buttonStyle(.secondary)
       }
-      .buttonStyle(.primary)
+      .onAppear { send(.onAppear) }
+    } destination: { store in
+      switch store.case {
+      case let .example(store):
+        ExampleView(store: store)
+      }
     }
-    .onAppear { send(.onAppear) }
+    .sheet(item: $store.scope(state: \.sheet, action: \.sheet)) { sheetStore in
+      NavigationStack {
+        ExampleView(store: sheetStore)
+      }
+    }
   }
 }
 

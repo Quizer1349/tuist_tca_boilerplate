@@ -2,19 +2,43 @@
 set -euo pipefail
 
 BASE="${1:-${NAME:-}}"
+WITH_CLIENT="${WITH_CLIENT:-}"
+
 if [ -z "$BASE" ]; then
-  echo "Usage: make feature NAME=Start"
+  echo "Usage: make feature NAME=Settings [WITH_CLIENT=Settings]"
   exit 1
 fi
 
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+APP_DIR="$SCRIPT_DIR/.."
+PROJECT_FILE="$APP_DIR/Project.swift"
+FEATURE_MARKER="// tuist-marker: insert new features above this line"
+
 FEATURE="${BASE}Feature"
 VIEW="${BASE}View"
-SOURCES="Features/$FEATURE/Sources"
-TESTS="Features/$FEATURE/Tests"
+SOURCES="$APP_DIR/Features/$FEATURE/Sources"
+TESTS="$APP_DIR/Features/$FEATURE/Tests"
 
-if [ -d "Features/$FEATURE" ]; then
+if [ -d "$APP_DIR/Features/$FEATURE" ]; then
   echo "✗ '$FEATURE' already exists at Features/$FEATURE"
   exit 1
+fi
+
+if ! grep -qF "$FEATURE_MARKER" "$PROJECT_FILE"; then
+  echo "✗ marker not found in Project.swift"
+  echo "  Expected: $FEATURE_MARKER"
+  echo "  inside the 'features' array, just before its closing ']'."
+  exit 1
+fi
+
+# ── Optional paired client ────────────────────────────────────────────────────
+
+CLIENT_DEP_TOKEN=""
+if [ -n "$WITH_CLIENT" ]; then
+  echo "→ Scaffolding paired client: ${WITH_CLIENT}Client"
+  bash "$SCRIPT_DIR/new-client.sh" "$WITH_CLIENT"
+  # Lower-camel form, matches new-client.sh's KEY logic:
+  CLIENT_DEP_TOKEN=", .$(echo "${WITH_CLIENT:0:1}" | tr '[:upper:]' '[:lower:]')${WITH_CLIENT:1}Client"
 fi
 
 mkdir -p "$SOURCES" "$TESTS"
@@ -68,7 +92,7 @@ import DesignSystem
 import SwiftUI
 
 @ViewAction(for: FEATURE_NAME.self)
-public struct FEATURE_NAMEView: View {
+public struct VIEW_NAME: View {
   public let store: StoreOf<FEATURE_NAME>
 
   public init(store: StoreOf<FEATURE_NAME>) {
@@ -85,7 +109,7 @@ public struct FEATURE_NAMEView: View {
 
 #if DEBUG
 #Preview {
-  FEATURE_NAMEView(
+  VIEW_NAME(
     store: Store(initialState: FEATURE_NAME.State()) {
       FEATURE_NAME()
     }
@@ -142,7 +166,7 @@ struct VIEW_NAMETests {
     userInterfaceStyle: UIUserInterfaceStyle = .light
   ) -> UIViewController {
     let controller = UIHostingController(
-      rootView: VIEW_NAMEView(
+      rootView: VIEW_NAME(
         store: Store(initialState: FEATURE_NAME.State()) {
           FEATURE_NAME()
         }
@@ -168,15 +192,26 @@ SWIFTEOF
 
 sed -i '' "s/FEATURE_NAME/$FEATURE/g" "$SOURCES/$FEATURE.swift"
 sed -i '' "s/FEATURE_NAME/$FEATURE/g" "$SOURCES/$VIEW.swift"
+sed -i '' "s/VIEW_NAME/$VIEW/g"       "$SOURCES/$VIEW.swift"
 sed -i '' "s/FEATURE_NAME/$FEATURE/g" "$TESTS/${FEATURE}Tests.swift"
 sed -i '' "s/FEATURE_NAME/$FEATURE/g" "$TESTS/${VIEW}Tests.swift"
 sed -i '' "s/VIEW_NAME/$VIEW/g"       "$TESTS/${VIEW}Tests.swift"
 
+# ── Insert into Project.swift (above marker) ──────────────────────────────────
+
+NEW_LINE="  FeatureTargetBuilder(\"$FEATURE\", dependencies: [.composableArchitecture, .designSystem${CLIENT_DEP_TOKEN}]),"
+
+awk -v insert="$NEW_LINE" -v marker="$FEATURE_MARKER" '
+  index($0, marker) { print insert }
+  { print }
+' "$PROJECT_FILE" > "$PROJECT_FILE.tmp" && mv "$PROJECT_FILE.tmp" "$PROJECT_FILE"
+
 # ── Done ──────────────────────────────────────────────────────────────────────
 
 echo "✓ Created $FEATURE"
+echo "✓ Wired into Project.swift"
+if [ -n "$WITH_CLIENT" ]; then
+  echo "✓ Linked ${WITH_CLIENT}Client as dependency"
+fi
 echo ""
-echo "Add to Project.swift features array:"
-echo "  FeatureTargetBuilder(\"$FEATURE\", dependencies: [.composableArchitecture, .designSystem]),"
-echo ""
-echo "Then run: make generate"
+echo "  Run: make"

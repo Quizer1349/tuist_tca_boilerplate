@@ -4,11 +4,21 @@ import ProjectDescriptionHelpers
 private let features: [FeatureTargetBuilder] = [
   FeatureTargetBuilder(
     "AppCoreFeature",
-    dependencies: [.composableArchitecture, .hapticClient, .designSystem],
+    dependencies: [
+      .composableArchitecture,
+      .hapticClient,
+      .designSystem,
+      .target(name: "ExampleFeature"),
+    ],
     isRoot: true
+  ),
+  FeatureTargetBuilder(
+    "ExampleFeature",
+    dependencies: [.composableArchitecture, .hapticClient, .designSystem]
   ),
   FeatureTargetBuilder("HapticClient", dependencies: [.composableArchitecture]),
   FeatureTargetBuilder("DesignSystem", resources: true),
+  // tuist-marker: insert new features above this line
 ]
 
 private let appTarget: Target = .target(

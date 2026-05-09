@@ -1,39 +1,18 @@
 import ProjectDescription
 
-// MARK: - AppConfig
-
-public enum AppConfig {
-  public static let projectName = "App"
-  public static let bundlePrefix = "com.app"
-  public static let deploymentTarget: DeploymentTargets = .iOS("17.0")
-  public static let developmentRegion = "en"
-
-  public static func bundleId(_ suffix: String) -> String {
-    "\(bundlePrefix).\(suffix)"
-  }
-}
-
-// MARK: - TargetDependency + named externals
-
-public extension TargetDependency {
-  static let composableArchitecture: Self = .external(name: "ComposableArchitecture")
-  static let hapticClient: Self = .target(name: "HapticClient")
-  static let snapshotTesting: Self = .external(name: "SnapshotTesting")
-  static let designSystem: Self = .target(name: "DesignSystem")
-}
-
-// MARK: - InfoPlist + app defaults
-
-public extension InfoPlist {
-  static let appDefault: Self = .extendingDefault(with: [
-    "CFBundleDisplayName": "$(PRODUCT_NAME)",
-    "UILaunchScreen": ["UIColorName": "", "UIImageName": ""],
-    "UISupportedInterfaceOrientations": ["UIInterfaceOrientationPortrait"],
-  ])
-}
-
-// MARK: - FeatureTargetBuilder
-
+/// One-stop builder for a feature module + its companion test target.
+///
+/// Usage in `Project.swift`:
+/// ```
+/// FeatureTargetBuilder(
+///   "MyFeature",
+///   dependencies: [.composableArchitecture, .designSystem]
+/// )
+/// ```
+///
+/// Pass `resources: true` if the module ships resources (asset catalogs, strings).
+/// Pass `isRoot: true` for app-only features (entry points). The Tuist manifest validator
+/// in `LayerEnforcement` aborts generation if any sibling lists a root in its dependencies.
 public struct FeatureTargetBuilder: Sendable {
   public let name: String
   public let isRoot: Bool
@@ -115,16 +94,5 @@ public struct FeatureTargetBuilder: Sendable {
       sources: ["Features/\(name)/Tests/**"],
       dependencies: [.target(name: name), .snapshotTesting] + dependencies
     )
-  }
-}
-
-// MARK: - Layer enforcement
-
-/// Asserts that no non-root feature depends on a feature flagged `isRoot`.
-/// Call this from `Project.swift` before constructing the `Project` value.
-public func assertNoRootDependencies(_ features: [FeatureTargetBuilder]) {
-  let rootNames = Set(features.filter(\.isRoot).map(\.name))
-  for feature in features where !feature.isRoot {
-    feature.assertDoesNotDependOn(rootNames)
   }
 }

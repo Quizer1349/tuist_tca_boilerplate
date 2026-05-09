@@ -2,7 +2,6 @@
 *.xcodeproj
 *.xcworkspace
 Derived/
-App/Derived/
 
 # Tuist binaries and build cache
 .tuist-bin/
@@ -14,6 +13,7 @@ Tuist/.build/
 
 # Xcode
 xcuserdata/
+*.xcuserstate
 *.xccheckout
 *.moved-aside
 DerivedData/

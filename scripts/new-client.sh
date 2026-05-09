@@ -7,13 +7,30 @@ if [ -z "$BASE" ]; then
   exit 1
 fi
 
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+APP_DIR="$SCRIPT_DIR/.."
+PROJECT_FILE="$APP_DIR/Project.swift"
+HELPERS_FILE="$APP_DIR/Tuist/ProjectDescriptionHelpers/TargetDependency+Named.swift"
+FEATURE_MARKER="// tuist-marker: insert new features above this line"
+DEPS_MARKER="// tuist-marker: insert new client deps above this line"
+
 CLIENT="${BASE}Client"
 KEY="$(echo "${BASE:0:1}" | tr '[:upper:]' '[:lower:]')${BASE:1}Client"
-SOURCES="Features/$CLIENT/Sources"
-TESTS="Features/$CLIENT/Tests"
+SOURCES="$APP_DIR/Features/$CLIENT/Sources"
+TESTS="$APP_DIR/Features/$CLIENT/Tests"
 
-if [ -d "Features/$CLIENT" ]; then
+if [ -d "$APP_DIR/Features/$CLIENT" ]; then
   echo "✗ '$CLIENT' already exists at Features/$CLIENT"
+  exit 1
+fi
+
+if ! grep -qF "$FEATURE_MARKER" "$PROJECT_FILE"; then
+  echo "✗ marker not found in Project.swift: $FEATURE_MARKER"
+  exit 1
+fi
+
+if ! grep -qF "$DEPS_MARKER" "$HELPERS_FILE"; then
+  echo "✗ marker not found in Project+Templates.swift: $DEPS_MARKER"
   exit 1
 fi
 
@@ -95,17 +112,28 @@ sed -i '' "s/CLIENT_NAME/$CLIENT/g" "$SOURCES/TestKey.swift"
 sed -i '' "s/CLIENT_KEY/$KEY/g"     "$SOURCES/TestKey.swift"
 sed -i '' "s/CLIENT_NAME/$CLIENT/g" "$TESTS/${CLIENT}Tests.swift"
 
+# ── Insert into Project+Templates.swift (TargetDependency extension) ──────────
+
+DEP_LINE="  static let $KEY: Self = .target(name: \"$CLIENT\")"
+awk -v insert="$DEP_LINE" -v marker="$DEPS_MARKER" '
+  index($0, marker) { print insert }
+  { print }
+' "$HELPERS_FILE" > "$HELPERS_FILE.tmp" && mv "$HELPERS_FILE.tmp" "$HELPERS_FILE"
+
+# ── Insert into Project.swift (features array) ────────────────────────────────
+
+FEATURE_LINE="  FeatureTargetBuilder(\"$CLIENT\", dependencies: [.composableArchitecture]),"
+awk -v insert="$FEATURE_LINE" -v marker="$FEATURE_MARKER" '
+  index($0, marker) { print insert }
+  { print }
+' "$PROJECT_FILE" > "$PROJECT_FILE.tmp" && mv "$PROJECT_FILE.tmp" "$PROJECT_FILE"
+
 # ── Done ──────────────────────────────────────────────────────────────────────
 
 echo "✓ Created $CLIENT"
+echo "✓ Wired into Project.swift + Project+Templates.swift (.$KEY)"
 echo ""
-echo "1. Add to Project+Templates.swift:"
-echo "   static let $KEY: Self = .target(name: \"$CLIENT\")"
+echo "  Add to dependents:"
+echo "    dependencies: [..., .$KEY]"
 echo ""
-echo "2. Add to Project.swift features array:"
-echo "   FeatureTargetBuilder(\"$CLIENT\", dependencies: [.composableArchitecture]),"
-echo ""
-echo "3. Add to dependents:"
-echo "   dependencies: [..., .$KEY]"
-echo ""
-echo "4. Run: make generate"
+echo "  Run: make"
